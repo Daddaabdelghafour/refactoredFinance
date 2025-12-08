@@ -14,6 +14,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo '🔍 Checking out code from repository...'
@@ -43,7 +44,7 @@ pipeline {
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*. xml'
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -70,9 +71,9 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh """
                         mvn sonar:sonar \
-                        -Dsonar.projectKey=refactored-finance \
-                        -Dsonar. host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_TOKEN}
+                            -Dsonar.projectKey=refactored-finance \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
             }
@@ -105,10 +106,8 @@ pipeline {
             }
             steps {
                 echo '🐳 Building Docker image...'
-                script {
-                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                    sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
-                }
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
             }
         }
 
@@ -117,49 +116,23 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo '🚀 Pushing Docker image to registry.. .'
-                script {
-                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    sh "docker push ${DOCKER_IMAGE}:latest"
-                }
+                echo '🚀 Pushing Docker image to registry...'
+                sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
     }
 
     post {
         always {
-            echo '🧹 Cleaning up workspace...'
-            cleanWs()
+            echo '🧹 Pipeline completed'
+            deleteDir()
         }
         success {
             echo '✅ Pipeline completed successfully!'
-            emailext(
-                subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Build Successful</h2>
-                    <p><strong>Project:</strong> ${env. JOB_NAME}</p>
-                    <p><strong>Build Number:</strong> ${env. BUILD_NUMBER}</p>
-                    <p><strong>Branch:</strong> ${env.BRANCH_NAME}</p>
-                    <p><a href="${env.BUILD_URL}">View Build Details</a></p>
-                """,
-                to: 'dev-team@example.com',
-                mimeType: 'text/html'
-            )
         }
         failure {
             echo '❌ Pipeline failed!'
-            emailext(
-                subject: "❌ Build Failed: ${env. JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Build Failed</h2>
-                    <p><strong>Project:</strong> ${env. JOB_NAME}</p>
-                    <p><strong>Build Number:</strong> ${env. BUILD_NUMBER}</p>
-                    <p><strong>Branch:</strong> ${env.BRANCH_NAME}</p>
-                    <p><a href="${env.BUILD_URL}">View Build Details</a></p>
-                """,
-                to: 'dev-team@example.com',
-                mimeType: 'text/html'
-            )
         }
     }
 }
