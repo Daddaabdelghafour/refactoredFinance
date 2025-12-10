@@ -109,16 +109,25 @@ pipeline {
       }
     }
 
-    stage('Docker Login Check') {
+    stage('Docker Login (isolated config)') {
       steps {
-        echo '🔑 Logging into Docker Hub...'
+        echo '🔑 Logging into Docker Hub with isolated DOCKER_CONFIG...'
         script {
-          sh 'docker logout || true'
-          withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+          // Use a per-build docker config directory
+          sh 'mkdir -p .docker-config'
+          withEnv(["DOCKER_CONFIG=${pwd()}/.docker-config"]) {
+            // Clean any prior auth
+            sh 'docker logout https://index.docker.io/v1/ || true'
+            sh 'docker logout registry-1.docker.io || true'
+            sh 'docker logout docker.io || true'
+            // Login with Jenkins credentials (prefer a Docker Hub access token as password)
+            withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+              sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+            }
+            // Show the exact config being used
+            sh 'echo "Using DOCKER_CONFIG=$DOCKER_CONFIG"'
+            sh 'cat "$DOCKER_CONFIG/config.json" || true'
           }
-          // Optional: inspect docker client config
-          sh 'cat ~/.docker/config.json || true'
         }
       }
     }
@@ -127,9 +136,14 @@ pipeline {
       steps {
         echo '🚀 Pushing Docker image to Docker Hub...'
         script {
-          // Use the authenticated CLI session created above
-          sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-          sh "docker push ${DOCKER_IMAGE}:latest"
+          withEnv(["DOCKER_CONFIG=${pwd()}/.docker-config"]) {
+            // Confirm tags exist before pushing
+            sh "docker images | awk '{print \$1\":\"\$2}' | grep '${DOCKER_IMAGE}:${DOCKER_TAG}' || (echo 'Tag not found' && exit 1)"
+            sh "docker images | awk '{print \$1\":\"\$2}' | grep '${DOCKER_IMAGE}:latest' || (echo 'Tag not found' && exit 1)"
+            // Push using the authenticated session in DOCKER_CONFIG
+            sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+            sh "docker push ${DOCKER_IMAGE}:latest"
+          }
         }
       }
     }
