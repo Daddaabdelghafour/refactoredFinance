@@ -111,7 +111,7 @@ pipeline {
       steps {
         echo '🚀 Pushing Docker image to registry...'
         script {
-          docker.withRegistry('', 'docker-credentials') {
+          docker.withRegistry('https://index.docker.io/v1/', 'docker-credentials') {
             sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
             sh "docker push ${DOCKER_IMAGE}:latest"
           }
