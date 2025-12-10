@@ -99,20 +99,17 @@ pipeline {
       }
     }
 
-    // Build and tag only on main
     stage('Docker Build') {
-      when { branch 'main' }
       steps {
-        echo '🐳 Building Docker image (main)...'
+        echo '🐳 Building Docker image...'
+        sh 'docker --version'
         sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest ."
       }
     }
 
-    // Push only on main, using Jenkins credentials
     stage('Docker Push') {
-      when { branch 'main' }
       steps {
-        echo '🚀 Pushing Docker image to registry (main)...'
+        echo '🚀 Pushing Docker image to registry...'
         script {
           docker.withRegistry('', 'docker-credentials') {
             sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
