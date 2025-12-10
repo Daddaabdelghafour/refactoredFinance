@@ -91,6 +91,7 @@ pipeline {
       steps {
         echo '📦 Packaging application...'
         sh 'mvn package -DskipTests'
+        sh 'ls -l target || true'
       }
       post {
         success {
@@ -104,12 +105,25 @@ pipeline {
         echo '🐳 Building Docker image...'
         sh 'docker --version'
         sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest ."
+        sh "docker images | grep '${DOCKER_IMAGE}\\s' || true"
+      }
+    }
+
+    stage('Docker Login Check') {
+      steps {
+        echo '🔑 Logging into Docker Hub...'
+        script {
+          sh 'docker logout || true'
+          withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+          }
+        }
       }
     }
 
     stage('Docker Push') {
       steps {
-        echo '🚀 Pushing Docker image to registry...'
+        echo '🚀 Pushing Docker image to Docker Hub...'
         script {
           docker.withRegistry('https://index.docker.io/v1/', 'docker-credentials') {
             sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
