@@ -117,6 +117,8 @@ pipeline {
           withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
           }
+          // Optional: inspect docker client config
+          sh 'cat ~/.docker/config.json || true'
         }
       }
     }
@@ -125,10 +127,9 @@ pipeline {
       steps {
         echo '🚀 Pushing Docker image to Docker Hub...'
         script {
-          docker.withRegistry('https://index.docker.io/v1/', 'docker-credentials') {
-            sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            sh "docker push ${DOCKER_IMAGE}:latest"
-          }
+          // Use the authenticated CLI session created above
+          sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+          sh "docker push ${DOCKER_IMAGE}:latest"
         }
       }
     }
