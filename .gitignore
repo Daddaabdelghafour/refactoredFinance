@@ -84,3 +84,11 @@ Thumbs.db
 *.jar
 *.war
 *.ear
+
+# ---------------------------
+# Analyse et Documentation Interne
+# ---------------------------
+ANALYSE_SPAGHETTI.md
+PRINCIPES_PROGRAMMATION.md
+RAPPORT_ETAPE1_MODELES.md
+SpaghettiFinanceApp.java
