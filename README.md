@@ -82,4 +82,3 @@ mvn exec:java -Dexec.mainClass="com.university.finance.App"
 
 - **Membre 1** : DevOps Stack (Jenkins, SonarQube)
 - **Membre 2** : Refactoring Java + Tests
-
